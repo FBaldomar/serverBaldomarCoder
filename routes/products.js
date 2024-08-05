@@ -2,22 +2,28 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 const path = require("path");
+const { io } = require("../server"); // Importar io desde server.js
+
 const productsFilePath = path.join(__dirname, "../data/productos.json");
 
+// Leer productos desde el archivo
 const readProducts = () => {
   const productsData = fs.readFileSync(productsFilePath, "utf-8");
   return JSON.parse(productsData);
 };
 
+// Guardar productos en el archivo
 const saveProducts = (products) => {
   fs.writeFileSync(productsFilePath, JSON.stringify(products, null, 2));
 };
 
+// Generar un nuevo ID
 const generateId = () => {
   const products = readProducts();
   return products.length ? products[products.length - 1].id + 1 : 1;
 };
 
+// Rutas
 router.get("/", (req, res) => {
   const products = readProducts();
   const limit = parseInt(req.query.limit) || products.length;
@@ -64,6 +70,8 @@ router.post("/", (req, res) => {
   products.push(newProduct);
   saveProducts(products);
 
+  io.emit("updateProducts", products); // Emitir evento de actualización
+
   res.status(201).json(newProduct);
 });
 
@@ -83,6 +91,8 @@ router.put("/:pid", (req, res) => {
   products[productIndex] = updatedProduct;
   saveProducts(products);
 
+  io.emit("updateProducts", products); // Emitir evento de actualización
+
   res.json(updatedProduct);
 });
 
@@ -96,6 +106,8 @@ router.delete("/:pid", (req, res) => {
 
   products.splice(productIndex, 1);
   saveProducts(products);
+
+  io.emit("updateProducts", products); // Emitir evento de actualización
 
   res.status(204).send();
 });

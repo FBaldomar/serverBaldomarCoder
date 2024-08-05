@@ -1,0 +1,38 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real Time Products</title>
+  </head>
+  <body>
+    <h1>Lista de Productos en Tiempo Real</h1>
+    <ul id="productList">
+      {{#each products}}
+        <li>{{this.title}} - {{this.price}}</li>
+      {{/each}}
+    </ul>
+
+    <form id="productForm">
+      <input type="text" id="title" placeholder="Título" required />
+      <input type="number" id="price" placeholder="Precio" required />
+      <button type="submit">Agregar Producto</button>
+    </form>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io(); // Escuchar actualizaciones de productos
+      socket.on('updateProducts', (products) => { const productList =
+      document.getElementById('productList'); productList.innerHTML = '';
+      products.forEach(product => { const li = document.createElement('li');
+      li.textContent = `${product.title} - ${product.price}`;
+      productList.appendChild(li); }); }); // Manejar el envío del formulario
+      document.getElementById('productForm').addEventListener('submit', (event)
+      => { event.preventDefault(); const title =
+      document.getElementById('title').value; const price =
+      document.getElementById('price').value; const newProduct = { id:
+      Date.now(), title, price }; // Genera un ID único
+      socket.emit('newProduct', newProduct);
+      document.getElementById('productForm').reset(); });
+    </script>
+  </body>
+</html>
