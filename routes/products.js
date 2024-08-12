@@ -1,44 +1,28 @@
 const express = require("express");
 const router = express.Router();
-const fs = require("fs");
-const path = require("path");
-const { io } = require("../server"); // Importar io desde server.js
+const { readProducts, saveProducts } = require("../managers/productManager");
+const { io } = require("../server");
 
-const productsFilePath = path.join(__dirname, "../data/productos.json");
-
-// Leer productos desde el archivo
-const readProducts = () => {
-  const productsData = fs.readFileSync(productsFilePath, "utf-8");
-  return JSON.parse(productsData);
-};
-
-// Guardar productos en el archivo
-const saveProducts = (products) => {
-  fs.writeFileSync(productsFilePath, JSON.stringify(products, null, 2));
-};
-
-// Generar un nuevo ID
-const generateId = () => {
-  const products = readProducts();
+const generateId = async () => {
+  const products = await readProducts();
   return products.length ? products[products.length - 1].id + 1 : 1;
 };
 
-// Rutas
-router.get("/", (req, res) => {
-  const products = readProducts();
+router.get("/", async (req, res) => {
+  const products = await readProducts();
   const limit = parseInt(req.query.limit) || products.length;
   res.json(products.slice(0, limit));
 });
 
-router.get("/:pid", (req, res) => {
-  const products = readProducts();
+router.get("/:pid", async (req, res) => {
+  const products = await readProducts();
   const product = products.find((p) => p.id === parseInt(req.params.pid));
   if (!product)
     return res.status(404).json({ error: "Producto no encontrado" });
   res.json(product);
 });
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const {
     title,
     description,
@@ -56,7 +40,7 @@ router.post("/", (req, res) => {
   }
 
   const newProduct = {
-    id: generateId(),
+    id: await generateId(),
     title,
     description,
     code,
@@ -66,17 +50,17 @@ router.post("/", (req, res) => {
     category,
     thumbnails,
   };
-  const products = readProducts();
+  const products = await readProducts();
   products.push(newProduct);
-  saveProducts(products);
+  await saveProducts(products);
 
   io.emit("updateProducts", products); // Emitir evento de actualización
 
   res.status(201).json(newProduct);
 });
 
-router.put("/:pid", (req, res) => {
-  const products = readProducts();
+router.put("/:pid", async (req, res) => {
+  const products = await readProducts();
   const productIndex = products.findIndex(
     (p) => p.id === parseInt(req.params.pid)
   );
@@ -89,15 +73,15 @@ router.put("/:pid", (req, res) => {
     id: products[productIndex].id,
   };
   products[productIndex] = updatedProduct;
-  saveProducts(products);
+  await saveProducts(products);
 
   io.emit("updateProducts", products); // Emitir evento de actualización
 
   res.json(updatedProduct);
 });
 
-router.delete("/:pid", (req, res) => {
-  const products = readProducts();
+router.delete("/:pid", async (req, res) => {
+  const products = await readProducts();
   const productIndex = products.findIndex(
     (p) => p.id === parseInt(req.params.pid)
   );
@@ -105,7 +89,7 @@ router.delete("/:pid", (req, res) => {
     return res.status(404).json({ error: "Producto no encontrado" });
 
   products.splice(productIndex, 1);
-  saveProducts(products);
+  await saveProducts(products);
 
   io.emit("updateProducts", products); // Emitir evento de actualización
 
